@@ -1,8 +1,9 @@
 extends CharacterBody3D
 
 var speed
-const WALK_SPEED = 8.0
-const SPRINT_SPEED = 60.0
+const WALK_SPEED = 9.0
+const STEADY_SPEED = WALK_SPEED * 0.5
+const SPRINT_SPEED = 600.0
 const DASH_DURATION = 0.2
 const JUMP_VELOCITY = 4.5
 const SENSITIVITY = 0.004
@@ -15,30 +16,32 @@ var t_bob = 0.0
 
 # fov variables
 const BASE_FOV = 90.0
-const FOV_CHANGE = 1.2
+const FOV_CHANGE = 1.4
+var current_fov_change = FOV_CHANGE
 
 # Player Mode
 enum PLAYER_MODE {DEFAULT, STEADY, SWIFT}
-var current_mode = PLAYER_MODE.DEFAULT
+var current_mode = PLAYER_MODE.STEADY
+var switch_mode_change= true
 
 # STEADY MODE VAR
-const STEADY_MAX_STAMINA = 200
+const STEADY_MAX_STAMINA = 100000 ## DEFAULT 200
 var steady_stamina = STEADY_MAX_STAMINA
 const STEADY_STAMINA_REGEN = 10  # Per second
 const STEADY_DAMAGE_REDUCTION = 0.5  # 50% damage reduction
 
 # SWIFT MODE VAR
-const SWIFT_MAX_STAMINA = 150
+const SWIFT_MAX_STAMINA = 100000 ## DEFAULT 150
 var swift_stamina = SWIFT_MAX_STAMINA
 const SWIFT_STAMINA_REGEN = 15  # Per second
 var dash_time_left = 0.0
 const DASH_STAMINA_COST = 25
 
 # DEFAULT MODE VAR
-const DEFAULT_STAMINA_REGEN = 5  # Per second
+const DEFAULT_STAMINA_REGEN = 10  # Per second
 
 # Mode cooldown
-const MODE_SWITCH_COOLDOWN = 2.0  # Seconds
+const MODE_SWITCH_COOLDOWN = 1.6  # Seconds
 var mode_switch_timer = 0.0
 
 # signal
@@ -69,13 +72,14 @@ func _unhandled_input(event):
 		camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-40), deg_to_rad(60))
 	
 	# Mode switching
-	if mode_switch_timer <= 0:
-		if Input.is_action_just_pressed("mode_default"):
-			switch_mode(PLAYER_MODE.DEFAULT)
-		elif Input.is_action_just_pressed("switch_mode"):
+	if mode_switch_timer <= 0 :
+		if Input.is_action_just_pressed("switch_mode") && switch_mode_change && steady_stamina >20:
+			switch_mode_change = !switch_mode_change
 			switch_mode(PLAYER_MODE.STEADY)
-		elif Input.is_action_just_pressed("mode_swift"):
+		elif Input.is_action_just_pressed("switch_mode") && !switch_mode_change && swift_stamina> 20:
+			switch_mode_change = !switch_mode_change
 			switch_mode(PLAYER_MODE.SWIFT)
+	
 
 func switch_mode(new_mode):
 	if current_mode != new_mode:
@@ -84,11 +88,17 @@ func switch_mode(new_mode):
 		emit_signal("mode_changed", current_mode)
 		
 		# Reset speed when switching modes
-		speed = WALK_SPEED
+		speed = STEADY_SPEED
 		
 		# You could add visual/audio feedback here
 
 func _physics_process(delta):
+	#Logs
+	Global.debug.add_property("Mode", current_mode,1)
+	Global.debug.add_property("Speed",speed,2)
+	Global.debug.add_property("Steady_Stamina",steady_stamina,3)
+	Global.debug.add_property("Swift_Stamina",swift_stamina,4)
+	
 	# Update mode switch cooldown
 	if mode_switch_timer > 0:
 		mode_switch_timer -= delta
@@ -98,9 +108,10 @@ func _physics_process(delta):
 		steady_stamina = min(steady_stamina + DEFAULT_STAMINA_REGEN * delta, STEADY_MAX_STAMINA)
 		swift_stamina = min(swift_stamina + DEFAULT_STAMINA_REGEN * delta, SWIFT_MAX_STAMINA)
 	elif current_mode == PLAYER_MODE.STEADY:
-		steady_stamina = min(steady_stamina + STEADY_STAMINA_REGEN * delta, STEADY_MAX_STAMINA)
-	elif current_mode == PLAYER_MODE.SWIFT:
 		swift_stamina = min(swift_stamina + SWIFT_STAMINA_REGEN * delta, SWIFT_MAX_STAMINA)
+	elif current_mode == PLAYER_MODE.SWIFT:
+		steady_stamina = min(steady_stamina + STEADY_STAMINA_REGEN * delta, STEADY_MAX_STAMINA)
+		
 	
 	# Add the gravity.
 	if not is_on_floor():
@@ -120,7 +131,7 @@ func _physics_process(delta):
 			speed = WALK_SPEED
 	else:
 		speed = WALK_SPEED
-	
+		
 	# Update dash timer
 	if dash_time_left > 0:
 		dash_time_left -= delta
@@ -129,11 +140,22 @@ func _physics_process(delta):
 		if speed == SPRINT_SPEED:
 			speed = WALK_SPEED
 	
+	
+	
 	# Get the input direction and handle the movement/deceleration.
 	var input_dir = Input.get_vector("left", "right", "up", "down")
 	var direction = (head.transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	
+	if current_mode == PLAYER_MODE.SWIFT and dash_time_left<0:
+		speed = WALK_SPEED
+		current_fov_change =  FOV_CHANGE
+		
+	elif current_mode == PLAYER_MODE.STEADY:
+		speed = STEADY_SPEED
+		current_fov_change = 1.2
+		
 	if is_on_floor():
+		
 		if direction:
 			velocity.x = lerp(velocity.x, direction.x * speed, delta * 15.0)
 			velocity.z = lerp(velocity.z, direction.z * speed, delta * 15.0)
@@ -149,9 +171,11 @@ func _physics_process(delta):
 	camera.transform.origin = _headbob(t_bob)
 	
 	# FOV
-	var velocity_clamped = clamp(velocity.length(), 0.5, SPRINT_SPEED * 2)
+	var velocity_clamped = clamp(velocity.length(), 0.5, SPRINT_SPEED)
 	var target_fov = BASE_FOV + FOV_CHANGE * velocity_clamped
 	camera.fov = lerp(camera.fov, target_fov, delta * 8.0)
+	
+	
 	
 	# Movement and Collision
 	move_and_slide()
@@ -168,7 +192,7 @@ func hit(dir):
 	# Damage reduction in STEADY mode
 	if current_mode == PLAYER_MODE.STEADY and steady_stamina > 0:
 		final_hit_stagger *= STEADY_DAMAGE_REDUCTION
-		steady_stamina = max(0, steady_stamina - 20)  # Cost stamina to reduce damage
+		steady_stamina = max(0, steady_stamina - 10)  # Cost stamina to reduce damage
 	
 	emit_signal("player_hit")
 	velocity += dir * final_hit_stagger
