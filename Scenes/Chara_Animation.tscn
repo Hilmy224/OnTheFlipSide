@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3 uid="uid://b27widkrcadvt"]
+
+[ext_resource type="PackedScene" uid="uid://cj42ctm60fdi2" path="res://animations/Godot_Steady.glb" id="1_mr1ee"]
+
+[node name="Godot_Steady" instance=ExtResource("1_mr1ee")]

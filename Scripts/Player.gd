@@ -29,6 +29,12 @@ const STEADY_MAX_STAMINA = 100000 ## DEFAULT 200
 var steady_stamina = STEADY_MAX_STAMINA
 const STEADY_STAMINA_REGEN = 10  # Per second
 const STEADY_DAMAGE_REDUCTION = 0.5  # 50% damage reduction
+const STEADY_BASH_STAMINA_COST = 30
+const STEADY_BASH_COOLDOWN = 1.0  # Seconds
+var steady_bash_timer = 0.0
+const STEADY_BASH_DAMAGE = 50
+const STEADY_BASH_RANGE = 2.0
+const STEADY_BASH_KNOCKBACK = 15.0
 
 # SWIFT MODE VAR
 const SWIFT_MAX_STAMINA = 100000 ## DEFAULT 150
@@ -44,9 +50,23 @@ const DEFAULT_STAMINA_REGEN = 10  # Per second
 const MODE_SWITCH_COOLDOWN = 1.6  # Seconds
 var mode_switch_timer = 0.0
 
+# Weapon variables
+const FIRE_RATE = 0.25  # Time between shots
+const RELOAD_TIME = 1.5  # Time to reload
+const MAX_AMMO = 30
+const DAMAGE = 25
+var current_ammo = MAX_AMMO
+var fire_timer = 0.0
+var reload_timer = 0.0
+var is_reloading = false
+var random_anim=1
+
 # signal
 signal player_hit
 signal mode_changed(new_mode)
+signal weapon_fired
+signal weapon_reloaded
+signal steady_bash_used
 
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity = 9.8
@@ -57,10 +77,13 @@ var instance
 
 @onready var head = $Head
 @onready var camera = $Head/Camera3D
-#@onready var gun_anim = $Head/Camera3D/Rifle/AnimationPlayer
-#@onready var gun_anim2 = $Head/Camera3D/Rifle2/AnimationPlayer
-#@onready var gun_barrel = $Head/Camera3D/Rifle/RayCast3D
-#@onready var gun_barrel2 = $Head/Camera3D/Rifle2/RayCast3D
+@onready var steadyAnimation = $Head/Camera3D/SteadyModeRig/AnimationPlayer
+@onready var swiftAnimation = $Head/Camera3D/SwiftModeRig/AnimationPlayer
+#@onready var steady_gun_anim = $Head/Camera3D/SteadyModeRig/Rifle/AnimationPlayer
+#@onready var swift_gun_anim = $Head/Camera3D/SwiftModeRig/Rifle/AnimationPlayer
+#@onready var steady_gun_barrel = $Head/Camera3D/SteadyModeRig/Rifle/RayCast3D
+#@onready var swift_gun_barrel = $Head/Camera3D/SwiftModeRig/Rifle/RayCast3D
+#@onready var bash_raycast = $Head/BashRaycast
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -72,14 +95,30 @@ func _unhandled_input(event):
 		camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-40), deg_to_rad(60))
 	
 	# Mode switching
-	if mode_switch_timer <= 0 :
-		if Input.is_action_just_pressed("switch_mode") && switch_mode_change && steady_stamina >20:
+	if mode_switch_timer <= 0:
+		if Input.is_action_just_pressed("switch_mode") && switch_mode_change && steady_stamina > 20:
 			switch_mode_change = !switch_mode_change
+			swiftAnimation.play("Swift_Mode_Stop")
 			switch_mode(PLAYER_MODE.STEADY)
-		elif Input.is_action_just_pressed("switch_mode") && !switch_mode_change && swift_stamina> 20:
+			steadyAnimation.play("Steady_Mode_Ready")
+			
+		elif Input.is_action_just_pressed("switch_mode") && !switch_mode_change && swift_stamina > 20:
 			switch_mode_change = !switch_mode_change
+			steadyAnimation.play("Steady_Mode_Stop")
 			switch_mode(PLAYER_MODE.SWIFT)
+			swiftAnimation.play("Swift_Mode_Ready")
 	
+	# Shooting
+	if Input.is_action_just_pressed("shoot") && current_ammo > 0 && !is_reloading && fire_timer <= 0:
+		shoot()
+	
+	# Reloading
+	if Input.is_action_just_pressed("reload") && !is_reloading && current_ammo < MAX_AMMO:
+		start_reload()
+	
+	# Steady Bash - Only in STEADY mode
+	if current_mode == PLAYER_MODE.STEADY && Input.is_action_just_pressed("bash") && steady_stamina >= STEADY_BASH_STAMINA_COST && steady_bash_timer <= 0:
+		steady_bash()
 
 func switch_mode(new_mode):
 	if current_mode != new_mode:
@@ -88,9 +127,15 @@ func switch_mode(new_mode):
 		emit_signal("mode_changed", current_mode)
 		
 		# Reset speed when switching modes
-		speed = STEADY_SPEED
+		if new_mode == PLAYER_MODE.STEADY:
+			speed = STEADY_SPEED
+		else:
+			speed = WALK_SPEED
 		
-		# You could add visual/audio feedback here
+		# Interrupt reloading if switching modes
+		if is_reloading:
+			is_reloading = false
+			reload_timer = 0.0
 
 func _physics_process(delta):
 	#Logs
@@ -98,10 +143,22 @@ func _physics_process(delta):
 	Global.debug.add_property("Speed",speed,2)
 	Global.debug.add_property("Steady_Stamina",steady_stamina,3)
 	Global.debug.add_property("Swift_Stamina",swift_stamina,4)
+	Global.debug.add_property("Ammo", str(current_ammo) + "/" + str(MAX_AMMO), 5)
 	
-	# Update mode switch cooldown
+	# Update timers
 	if mode_switch_timer > 0:
 		mode_switch_timer -= delta
+	
+	if fire_timer > 0:
+		fire_timer -= delta
+	
+	if reload_timer > 0:
+		reload_timer -= delta
+		if reload_timer <= 0 && is_reloading:
+			finish_reload()
+	
+	if steady_bash_timer > 0:
+		steady_bash_timer -= delta
 	
 	# Regenerate stamina based on current mode
 	if current_mode == PLAYER_MODE.DEFAULT:
@@ -111,7 +168,6 @@ func _physics_process(delta):
 		swift_stamina = min(swift_stamina + SWIFT_STAMINA_REGEN * delta, SWIFT_MAX_STAMINA)
 	elif current_mode == PLAYER_MODE.SWIFT:
 		steady_stamina = min(steady_stamina + STEADY_STAMINA_REGEN * delta, STEADY_MAX_STAMINA)
-		
 	
 	# Add the gravity.
 	if not is_on_floor():
@@ -129,9 +185,7 @@ func _physics_process(delta):
 			swift_stamina -= DASH_STAMINA_COST
 		else:
 			speed = WALK_SPEED
-	else:
-		speed = WALK_SPEED
-		
+	
 	# Update dash timer
 	if dash_time_left > 0:
 		dash_time_left -= delta
@@ -140,22 +194,19 @@ func _physics_process(delta):
 		if speed == SPRINT_SPEED:
 			speed = WALK_SPEED
 	
-	
-	
 	# Get the input direction and handle the movement/deceleration.
 	var input_dir = Input.get_vector("left", "right", "up", "down")
 	var direction = (head.transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	
-	if current_mode == PLAYER_MODE.SWIFT and dash_time_left<0:
+	if current_mode == PLAYER_MODE.SWIFT and dash_time_left < 0:
 		speed = WALK_SPEED
-		current_fov_change =  FOV_CHANGE
+		current_fov_change = FOV_CHANGE
 		
 	elif current_mode == PLAYER_MODE.STEADY:
 		speed = STEADY_SPEED
 		current_fov_change = 1.2
-		
+	
 	if is_on_floor():
-		
 		if direction:
 			velocity.x = lerp(velocity.x, direction.x * speed, delta * 15.0)
 			velocity.z = lerp(velocity.z, direction.z * speed, delta * 15.0)
@@ -174,8 +225,6 @@ func _physics_process(delta):
 	var velocity_clamped = clamp(velocity.length(), 0.5, SPRINT_SPEED)
 	var target_fov = BASE_FOV + FOV_CHANGE * velocity_clamped
 	camera.fov = lerp(camera.fov, target_fov, delta * 8.0)
-	
-	
 	
 	# Movement and Collision
 	move_and_slide()
@@ -197,7 +246,94 @@ func hit(dir):
 	emit_signal("player_hit")
 	velocity += dir * final_hit_stagger
 
-# You might want to add helper functions to check stamina levels
+# Weapon functionality
+func shoot():
+	if fire_timer <= 0 && current_ammo > 0 && !is_reloading:
+		current_ammo -= 1
+		fire_timer = FIRE_RATE
+		
+		
+		# Play the appropriate shoot animation based on current mode
+		if current_mode == PLAYER_MODE.STEADY:
+			steadyAnimation.play("Steady_Mode_Shoot")
+			
+			## Use steady mode raycast/bullet logic
+			#if steady_gun_barrel.is_colliding():
+				#var target = steady_gun_barrel.get_collider()
+				#if target.has_method("take_damage"):
+					#target.take_damage(DAMAGE)
+			#else:
+				## Create a bullet instance for steady mode
+				#instance = bullet.instantiate()
+				#instance.global_transform = steady_gun_barrel.global_transform
+				#get_tree().get_root().add_child(instance)
+		
+		elif current_mode == PLAYER_MODE.SWIFT:
+			if random_anim>0:
+				swiftAnimation.play("Swift_Mode_Shoot_1")
+				random_anim*=-1
+			else:
+				swiftAnimation.play("Swift_Mode_Shoot_2")
+				random_anim*=-1
+			
+			## Use swift mode raycast/bullet logic
+			#if swift_gun_barrel.is_colliding():
+				#var target = swift_gun_barrel.get_collider()
+				#if target.has_method("take_damage"):
+					#target.take_damage(DAMAGE)
+			#else:
+				## Create a bullet instance for swift mode
+				#instance = bullet.instantiate()
+				#instance.global_transform = swift_gun_barrel.global_transform
+				#get_tree().get_root().add_child(instance)
+		
+		emit_signal("weapon_fired")
+		
+		# Auto reload if out of ammo
+		if current_ammo <= 0:
+			start_reload()
+
+func start_reload():
+	if !is_reloading && current_ammo < MAX_AMMO:
+		is_reloading = true
+		reload_timer = RELOAD_TIME
+		
+		# Play the appropriate reload animation based on current mode
+		if current_mode == PLAYER_MODE.STEADY:
+			steadyAnimation.play("Steady_Mode_Reload")
+		elif current_mode == PLAYER_MODE.SWIFT:
+			swiftAnimation.play("Swift_Mode_Reload")
+
+func finish_reload():
+	current_ammo = MAX_AMMO
+	is_reloading = false
+	emit_signal("weapon_reloaded")
+
+func steady_bash():
+	if current_mode == PLAYER_MODE.STEADY && steady_stamina >= STEADY_BASH_STAMINA_COST && steady_bash_timer <= 0:
+		steady_stamina -= STEADY_BASH_STAMINA_COST
+		steady_bash_timer = STEADY_BASH_COOLDOWN
+		
+		# Play bash animation
+		steadyAnimation.play("Steady_Mode_Bash")
+		
+		## Check for enemies in bash range
+		#bash_raycast.force_raycast_update()
+		#if bash_raycast.is_colliding():
+			#var target = bash_raycast.get_collider()
+			#if target.has_method("take_damage"):
+				#var dir = (target.global_transform.origin - global_transform.origin).normalized()
+				#target.take_damage(STEADY_BASH_DAMAGE)
+				#
+				## Apply knockback
+				#if target is RigidBody3D:
+					#target.apply_central_impulse(dir * STEADY_BASH_KNOCKBACK)
+				#elif target.has_method("apply_knockback"):
+					#target.apply_knockback(dir * STEADY_BASH_KNOCKBACK)
+		
+		emit_signal("steady_bash_used")
+
+# Helper functions to check stamina levels
 func get_current_stamina():
 	match current_mode:
 		PLAYER_MODE.STEADY:
