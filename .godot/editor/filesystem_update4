@@ -1,3 +1,13 @@
-res://Scenes/World.tscn
-res://theme/new_theme.tres
 res://Scenes/player.tscn
+res://theme/new_theme.tres
+res://Scenes/shade_enemy.gd
+res://Scenes/DarkMaterial.tres
+res://Scenes/InvisibleMaterial.tres
+res://Scenes/World.tscn
+res://Scenes/tiles.tscn
+res://Scenes/levelmain.tscn
+res://Scenes/shade_enemy.tscn
+res://Materials/bullet_material.tscn
+res://Scripts/bullet_script.gd
+res://Scripts/Player.gd
+res://Scenes/bullet_material.tscn

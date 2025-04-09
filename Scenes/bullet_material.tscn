@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3 uid="uid://cjlp3w2nos0iy"]
+
+[ext_resource type="Script" path="res://Scripts/bullet_script.gd" id="1_006xk"]
+[ext_resource type="Material" uid="uid://uv3b7567hhax" path="res://Materials/bullet_material.tres" id="2_401ci"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_75p4k"]
+
+[node name="BulletEntity" type="Node3D"]
+transform = Transform3D(127.773, 0, 0, 0, 127.773, 0, 0, 0, 127.773, 0, 0, 0)
+script = ExtResource("1_006xk")
+
+[node name="MeshInstance" type="MeshInstance3D" parent="."]
+transform = Transform3D(-3.97778e-08, 0, 0.0693635, 0, 0.0774946, 0, -0.91001, 0, -3.03197e-09, 0, 0, 0)
+material_override = ExtResource("2_401ci")
+mesh = SubResource("BoxMesh_75p4k")
+
+[node name="RayCast3D" type="RayCast3D" parent="."]
+target_position = Vector3(0, 0, -0.6)

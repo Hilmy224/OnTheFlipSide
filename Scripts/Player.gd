@@ -25,7 +25,7 @@ var current_mode = PLAYER_MODE.STEADY
 var switch_mode_change= true
 
 # STEADY MODE VAR
-const STEADY_MAX_STAMINA = 100000 ## DEFAULT 200
+const STEADY_MAX_STAMINA = 200 ## DEFAULT 200
 var steady_stamina = STEADY_MAX_STAMINA
 const STEADY_STAMINA_REGEN = 10  # Per second
 const STEADY_DAMAGE_REDUCTION = 0.5  # 50% damage reduction
@@ -37,7 +37,7 @@ const STEADY_BASH_RANGE = 2.0
 const STEADY_BASH_KNOCKBACK = 15.0
 
 # SWIFT MODE VAR
-const SWIFT_MAX_STAMINA = 100000 ## DEFAULT 150
+const SWIFT_MAX_STAMINA = 150 ## DEFAULT 150
 var swift_stamina = SWIFT_MAX_STAMINA
 const SWIFT_STAMINA_REGEN = 15  # Per second
 var dash_time_left = 0.0
@@ -53,13 +53,18 @@ var mode_switch_timer = 0.0
 # Weapon variables
 const FIRE_RATE = 0.25  # Time between shots
 const RELOAD_TIME = 1.5  # Time to reload
-const MAX_AMMO = 30
+const MAX_AMMO = 6
 const DAMAGE = 25
 var current_ammo = MAX_AMMO
 var fire_timer = 0.0
 var reload_timer = 0.0
 var is_reloading = false
 var random_anim=1
+
+# Health variables
+const MAX_HEALTH = 100
+var current_health = MAX_HEALTH
+
 
 # signal
 signal player_hit
@@ -68,25 +73,44 @@ signal weapon_fired
 signal weapon_reloaded
 signal steady_bash_used
 
+
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity = 9.8
 
-# Bullets
-var bullet = load("res://Scenes/Bullet.tscn")
-var instance
+
 
 @onready var head = $Head
 @onready var camera = $Head/Camera3D
 @onready var steadyAnimation = $Head/Camera3D/SteadyModeRig/AnimationPlayer
+@onready var steadyRig = $Head/Camera3D/SteadyModeRig
 @onready var swiftAnimation = $Head/Camera3D/SwiftModeRig/AnimationPlayer
-#@onready var steady_gun_anim = $Head/Camera3D/SteadyModeRig/Rifle/AnimationPlayer
-#@onready var swift_gun_anim = $Head/Camera3D/SwiftModeRig/Rifle/AnimationPlayer
-#@onready var steady_gun_barrel = $Head/Camera3D/SteadyModeRig/Rifle/RayCast3D
-#@onready var swift_gun_barrel = $Head/Camera3D/SwiftModeRig/Rifle/RayCast3D
-#@onready var bash_raycast = $Head/BashRaycast
+@onready var swiftRig = $Head/Camera3D/SwiftModeRig
+
+#Bullets
+var bullet = load("res://Scenes/bullet_material.tscn")
+var bullet_instance
+@onready var steady_gun_barrel = $Head/Camera3D/SteadyRayCast
+@onready var swift_gun_barrel_1 = $Head/Camera3D/SwiftModeRig/SwifRayCast1
+@onready var swift_gun_barrel_2 = $Head/Camera3D/SwiftModeRig/SwifRayCast2
+
+
+#UI ELEMENTS
+@onready var ui = $UI
+@onready var hp_bar = $UI/StatsBar/MarginContainer/TextureProgressBar
+@onready var steady_bar = $UI/StatsBar/HBoxContainer/SteadyBar
+@onready var swift_bar = $UI/StatsBar/HBoxContainer/SwiftBar
+@onready var ammo_label = $UI/AmmoUI/VBoxContainer/AmmoLabel
+@onready var ammo_icon = $UI/AmmoUI/VBoxContainer/AmmoIcon
+@onready var mode_animation_player = $UI/StatsBar/HBoxContainer/MarginContainer/PlayerModeIcons
 
 func _ready():
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	
+	 # Initialize UI elements
+	update_health_ui()
+	update_stamina_ui()
+	update_ammo_ui()
+	update_mode_icon()
 
 func _unhandled_input(event):
 	if event is InputEventMouseMotion:
@@ -98,15 +122,22 @@ func _unhandled_input(event):
 	if mode_switch_timer <= 0:
 		if Input.is_action_just_pressed("switch_mode") && switch_mode_change && steady_stamina > 20:
 			switch_mode_change = !switch_mode_change
+			swiftRig.visible = false
 			swiftAnimation.play("Swift_Mode_Stop")
+			
 			switch_mode(PLAYER_MODE.STEADY)
+			steadyRig.visible = true
 			steadyAnimation.play("Steady_Mode_Ready")
+			
 			
 		elif Input.is_action_just_pressed("switch_mode") && !switch_mode_change && swift_stamina > 20:
 			switch_mode_change = !switch_mode_change
+			steadyRig.visible = false
 			steadyAnimation.play("Steady_Mode_Stop")
 			switch_mode(PLAYER_MODE.SWIFT)
+			swiftRig.visible = true
 			swiftAnimation.play("Swift_Mode_Ready")
+			
 	
 	# Shooting
 	if Input.is_action_just_pressed("shoot") && current_ammo > 0 && !is_reloading && fire_timer <= 0:
@@ -132,10 +163,23 @@ func switch_mode(new_mode):
 		else:
 			speed = WALK_SPEED
 		
+		# Update ammo when switching modes
+		if new_mode == PLAYER_MODE.SWIFT && current_ammo == MAX_AMMO:
+			current_ammo = MAX_AMMO * 2
+		elif new_mode != PLAYER_MODE.SWIFT && current_ammo > MAX_AMMO:
+			current_ammo = MAX_AMMO
+			
+		update_ammo_ui()
+		update_stamina_ui()
+		update_mode_icon()
+		
 		# Interrupt reloading if switching modes
 		if is_reloading:
 			is_reloading = false
 			reload_timer = 0.0
+
+			
+
 
 func _physics_process(delta):
 	#Logs
@@ -144,6 +188,10 @@ func _physics_process(delta):
 	Global.debug.add_property("Steady_Stamina",steady_stamina,3)
 	Global.debug.add_property("Swift_Stamina",swift_stamina,4)
 	Global.debug.add_property("Ammo", str(current_ammo) + "/" + str(MAX_AMMO), 5)
+	
+	
+	update_stamina_ui()
+	update_mode_icon()
 	
 	# Update timers
 	if mode_switch_timer > 0:
@@ -235,39 +283,34 @@ func _headbob(time) -> Vector3:
 	pos.x = cos(time * BOB_FREQ / 2) * BOB_AMP
 	return pos
 
-func hit(dir):
-	var final_hit_stagger = HIT_STAGGER
-	
-	# Damage reduction in STEADY mode
-	if current_mode == PLAYER_MODE.STEADY and steady_stamina > 0:
-		final_hit_stagger *= STEADY_DAMAGE_REDUCTION
-		steady_stamina = max(0, steady_stamina - 10)  # Cost stamina to reduce damage
-	
+# Modify your hit function
+func hit(dir,damage_taken):
+	take_damage(dir,damage_taken)
+	update_health_ui() # Cost stamina to reduce damage
+	update_stamina_ui()
 	emit_signal("player_hit")
-	velocity += dir * final_hit_stagger
+	player_hit_visual_feedback()  # Add visual feedback
 
-# Weapon functionality
+# Modify your shoot function
 func shoot():
-	if fire_timer <= 0 && current_ammo > 0 && !is_reloading:
+	if fire_timer <= 0 && current_ammo > 0 && !is_reloading && !steadyAnimation.is_playing() && !swiftAnimation.is_playing():
+		
+		
+		bullet_instance =  bullet.instantiate()
+		 
 		current_ammo -= 1
 		fire_timer = FIRE_RATE
 		
+		update_ammo_ui()
+		weapon_fired_visual_feedback()
 		
 		# Play the appropriate shoot animation based on current mode
 		if current_mode == PLAYER_MODE.STEADY:
 			steadyAnimation.play("Steady_Mode_Shoot")
+			bullet_instance.position = steady_gun_barrel.global_position
+			bullet_instance.transform.basis = steady_gun_barrel.global_transform.basis
+			get_parent().add_child(bullet_instance)
 			
-			## Use steady mode raycast/bullet logic
-			#if steady_gun_barrel.is_colliding():
-				#var target = steady_gun_barrel.get_collider()
-				#if target.has_method("take_damage"):
-					#target.take_damage(DAMAGE)
-			#else:
-				## Create a bullet instance for steady mode
-				#instance = bullet.instantiate()
-				#instance.global_transform = steady_gun_barrel.global_transform
-				#get_tree().get_root().add_child(instance)
-		
 		elif current_mode == PLAYER_MODE.SWIFT:
 			if random_anim>0:
 				swiftAnimation.play("Swift_Mode_Shoot_1")
@@ -275,24 +318,13 @@ func shoot():
 			else:
 				swiftAnimation.play("Swift_Mode_Shoot_2")
 				random_anim*=-1
-			
-			## Use swift mode raycast/bullet logic
-			#if swift_gun_barrel.is_colliding():
-				#var target = swift_gun_barrel.get_collider()
-				#if target.has_method("take_damage"):
-					#target.take_damage(DAMAGE)
-			#else:
-				## Create a bullet instance for swift mode
-				#instance = bullet.instantiate()
-				#instance.global_transform = swift_gun_barrel.global_transform
-				#get_tree().get_root().add_child(instance)
 		
 		emit_signal("weapon_fired")
 		
 		# Auto reload if out of ammo
 		if current_ammo <= 0:
 			start_reload()
-
+			
 func start_reload():
 	if !is_reloading && current_ammo < MAX_AMMO:
 		is_reloading = true
@@ -304,34 +336,35 @@ func start_reload():
 		elif current_mode == PLAYER_MODE.SWIFT:
 			swiftAnimation.play("Swift_Mode_Reload")
 
+
+
+# Modify your finish_reload function
 func finish_reload():
-	current_ammo = MAX_AMMO
+	if current_mode == PLAYER_MODE.SWIFT:
+		current_ammo = MAX_AMMO * 2
+	else:
+		current_ammo = MAX_AMMO
+	
+	update_ammo_ui()
+	weapon_reloaded_visual_feedback()
+	
 	is_reloading = false
 	emit_signal("weapon_reloaded")
 
+# Modify your steady_bash function
 func steady_bash():
 	if current_mode == PLAYER_MODE.STEADY && steady_stamina >= STEADY_BASH_STAMINA_COST && steady_bash_timer <= 0:
 		steady_stamina -= STEADY_BASH_STAMINA_COST
 		steady_bash_timer = STEADY_BASH_COOLDOWN
 		
+		update_stamina_ui()
+		update_mode_icon()
+		
 		# Play bash animation
 		steadyAnimation.play("Steady_Mode_Bash")
 		
-		## Check for enemies in bash range
-		#bash_raycast.force_raycast_update()
-		#if bash_raycast.is_colliding():
-			#var target = bash_raycast.get_collider()
-			#if target.has_method("take_damage"):
-				#var dir = (target.global_transform.origin - global_transform.origin).normalized()
-				#target.take_damage(STEADY_BASH_DAMAGE)
-				#
-				## Apply knockback
-				#if target is RigidBody3D:
-					#target.apply_central_impulse(dir * STEADY_BASH_KNOCKBACK)
-				#elif target.has_method("apply_knockback"):
-					#target.apply_knockback(dir * STEADY_BASH_KNOCKBACK)
-		
 		emit_signal("steady_bash_used")
+
 
 # Helper functions to check stamina levels
 func get_current_stamina():
@@ -351,3 +384,105 @@ func get_max_stamina():
 			return SWIFT_MAX_STAMINA
 		_:
 			return 0.0
+			
+func get_health():
+	return current_health
+
+func get_max_health():
+	return MAX_HEALTH
+
+func take_damage(dir, amount):
+	var final_damage = amount
+	var final_hit_stagger = HIT_STAGGER
+	
+	# Apply damage reduction in STEADY mode
+	if current_mode == PLAYER_MODE.STEADY and steady_stamina > 0:
+		final_damage *= (1.0 - STEADY_DAMAGE_REDUCTION)
+		steady_stamina = max(0, steady_stamina - amount * 0.5)  # Cost stamina to reduce damage
+		final_hit_stagger *= STEADY_DAMAGE_REDUCTION
+	
+	current_health = max(0, current_health - final_damage)
+	
+	if current_health <= 0:
+		# Handle player death
+		die()
+		
+	velocity += dir * final_hit_stagger*2
+
+func heal(amount):
+	current_health = min(current_health + amount, MAX_HEALTH)
+
+func die():
+	# Implement death logic here
+	# For example:
+	# get_tree().reload_current_scene()
+	pass
+	
+func update_health_ui():
+	if hp_bar:
+		hp_bar.value = current_health
+		hp_bar.max_value = MAX_HEALTH
+
+func update_stamina_ui():
+	if steady_bar and swift_bar:
+		steady_bar.value = steady_stamina
+		steady_bar.max_value = STEADY_MAX_STAMINA
+		
+		swift_bar.value = swift_stamina
+		swift_bar.max_value = SWIFT_MAX_STAMINA
+		
+		# Update visibility based on current mode
+		
+
+func update_ammo_ui():
+	if ammo_label:
+		var effective_max = MAX_AMMO
+		if current_mode == PLAYER_MODE.SWIFT:
+			effective_max *= 2
+		
+		ammo_label.text = str(current_ammo) + "/" + str(effective_max)
+		
+		# Visual feedback for low ammo
+		if current_ammo <= (effective_max / 4):
+			ammo_label.modulate = Color(1, 0.3, 0.3)  # Red when low
+		else:
+			ammo_label.modulate = Color(1, 1, 1)  # Normal color
+			
+
+
+func update_mode_icon():
+	if mode_animation_player:
+		# Check if mode switch is on cooldown
+		#if mode_switch_timer > 0:
+			#mode_animation_player.play("locked_out")
+			#return
+		#mode_animation_player.play
+		# Otherwise show appropriate mode icon
+		match current_mode:
+			PLAYER_MODE.DEFAULT:
+				mode_animation_player.play("default")
+			PLAYER_MODE.STEADY:
+					mode_animation_player.play("steady_mode")
+			PLAYER_MODE.SWIFT:
+					mode_animation_player.play("swift_mode")
+					
+# Add visual feedback for hit
+func player_hit_visual_feedback():
+	if hp_bar:
+		var tween = create_tween()
+		tween.tween_property(hp_bar, "modulate", Color(1.5, 0.3, 0.3), 0.1)
+		tween.tween_property(hp_bar, "modulate", Color(1, 1, 1), 0.2)
+
+# Add visual feedback for weapon fired
+func weapon_fired_visual_feedback():
+	if ammo_label:
+		var tween = create_tween()
+		tween.tween_property(ammo_label, "scale", Vector2(1.2, 1.2), 0.05)
+		tween.tween_property(ammo_label, "scale", Vector2(1.0, 1.0), 0.1)
+
+# Add visual feedback for weapon reloaded
+func weapon_reloaded_visual_feedback():
+	if ammo_label:
+		var tween = create_tween()
+		tween.tween_property(ammo_label, "modulate", Color(1.2, 1.2, 0.3), 0.1)
+		tween.tween_property(ammo_label, "modulate", Color(1, 1, 1), 0.2)
