@@ -1,0 +1,115 @@
+[gd_scene load_steps=11 format=3 uid="uid://vpd6gfpf7su4"]
+
+[ext_resource type="Script" uid="uid://wnekqmydlrp0" path="res://Scripts/death_menu.gd" id="1_fq3qd"]
+[ext_resource type="Theme" uid="uid://c58arneuyijtt" path="res://FontChary.tres" id="1_wiiab"]
+[ext_resource type="FontFile" uid="uid://dwjnqgtwjooa2" path="res://UI/chary___.ttf" id="2_fq3qd"]
+[ext_resource type="Texture2D" uid="uid://cfqki6ho468b0" path="res://UI/Button.png" id="4_b3l60"]
+[ext_resource type="FontFile" uid="uid://54ppgksbmiv4" path="res://UI/vcr-jp.ttf" id="5_g84a4"]
+[ext_resource type="Texture2D" uid="uid://dl5by0lta1oqw" path="res://UI/LoseScreen1.png" id="6_j8t5x"]
+[ext_resource type="Texture2D" uid="uid://dhbdi5smn3x3u" path="res://UI/LoseScreen2.png" id="7_cusx6"]
+[ext_resource type="Texture2D" uid="uid://dlmhkft22rexe" path="res://UI/LoseScreen3.png" id="8_rpk3b"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_2xmse"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("6_j8t5x")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_cusx6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_rpk3b")
+}],
+"loop": false,
+"name": &"default",
+"speed": 1.0
+}]
+
+[sub_resource type="Theme" id="Theme_egfcw"]
+
+[node name="DeathMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("1_fq3qd")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0253638, 0.0253638, 0.0253638, 1)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(960, 534)
+scale = Vector2(3.58131, 3.56146)
+sprite_frames = SubResource("SpriteFrames_2xmse")
+frame = 2
+frame_progress = 1.0
+speed_scale = 3.2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(400, 180)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -329.0
+offset_top = -111.0
+offset_right = 329.0
+offset_bottom = 173.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("1_wiiab")
+theme_override_colors/font_color = Color(0.659545, 0.163111, 0.261318, 1)
+theme_override_colors/font_shadow_color = Color(0.678944, 0.678944, 0.678944, 1)
+theme_override_fonts/font = ExtResource("2_fq3qd")
+theme_override_font_sizes/font_size = 60
+text = "Broken, Dream, Permanent?"
+
+[node name="RetryButton" type="MarginContainer" parent="VBoxContainer"]
+custom_minimum_size = Vector2(400, 180)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 3
+
+[node name="TextureRect" type="TextureRect" parent="VBoxContainer/RetryButton"]
+layout_mode = 2
+texture = ExtResource("4_b3l60")
+
+[node name="Label" type="Label" parent="VBoxContainer/RetryButton/TextureRect"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("5_g84a4")
+theme_override_font_sizes/font_size = 36
+text = "RETRY"
+
+[node name="RetryButton" type="LinkButton" parent="VBoxContainer/RetryButton"]
+layout_mode = 2
+theme = SubResource("Theme_egfcw")

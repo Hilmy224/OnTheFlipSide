@@ -1,10 +1,11 @@
-[gd_scene load_steps=12 format=3 uid="uid://db2h3t17k37pe"]
+[gd_scene load_steps=13 format=3 uid="uid://db2h3t17k37pe"]
 
 [ext_resource type="Material" uid="uid://b4s0xnt1f6lia" path="res://Materials/Green.tres" id="1_o5nrg"]
 [ext_resource type="Material" uid="uid://bi1h4xe7msjwi" path="res://Materials/Pink.tres" id="3_irgfk"]
 [ext_resource type="Material" uid="uid://b122sws3pt7w7" path="res://Materials/Red.tres" id="4_nuwel"]
 [ext_resource type="PackedScene" uid="uid://dd8ynwlqk5ape" path="res://Scenes/player.tscn" id="5_07dv4"]
 [ext_resource type="Material" uid="uid://p2nkjd3ge3qm" path="res://Materials/Blue.tres" id="5_te4rd"]
+[ext_resource type="PackedScene" uid="uid://cifj7j1wb68i3" path="res://Scenes/chestTrigger.tscn" id="6_45d1s"]
 [ext_resource type="PackedScene" uid="uid://dprdcd65tyiqc" path="res://Scenes/shade_enemy.tscn" id="6_h6na0"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_ektgl"]
@@ -96,6 +97,23 @@ transform = Transform3D(8.32088, 0, 0, 0, 3.36806, 0, 0, 0, 2.23571, 11.2775, 0.
 use_collision = true
 mesh = SubResource("PrismMesh_xqb3i")
 
-[node name="ShadeEnemyAnimation" parent="." instance=ExtResource("6_h6na0")]
-transform = Transform3D(0.11584, 0, 0, 0, 0.11584, 0, 0, 0, 0.11584, 2.78267, 0, -10.4466)
-player_path = NodePath("../Player")
+[node name="ParentChest" parent="NavigationRegion3D" instance=ExtResource("6_45d1s")]
+transform = Transform3D(-0.989419, 0, 0.0458117, 0, 0.990479, 0, -0.0458117, 0, -0.989419, 0, 0, -16.4725)
+player_path = NodePath("../../Player")
+enemy_scene = ExtResource("6_h6na0")
+
+[node name="ParentChest2" parent="NavigationRegion3D" instance=ExtResource("6_45d1s")]
+transform = Transform3D(-0.989419, 0, 0.0458117, 0, 0.990479, 0, -0.0458117, 0, -0.989419, -2.15072, 0, -16.4725)
+player_path = NodePath("../../Player")
+enemy_scene = ExtResource("6_h6na0")
+
+[node name="ParentChest3" parent="NavigationRegion3D" instance=ExtResource("6_45d1s")]
+transform = Transform3D(-0.989419, 0, 0.0458117, 0, 0.990479, 0, -0.0458117, 0, -0.989419, -4.15757, 0, -16.4725)
+player_path = NodePath("../../Player")
+enemy_scene = ExtResource("6_h6na0")
+
+[node name="ParentChest4" parent="NavigationRegion3D" instance=ExtResource("6_45d1s")]
+transform = Transform3D(-0.989419, 0, 0.0458117, 0, 0.990479, 0, -0.0458117, 0, -0.989419, -6.87914, 0, -16.4725)
+mode = 1
+player_path = NodePath("../../Player")
+enemy_scene = ExtResource("6_h6na0")

@@ -1,0 +1,175 @@
+[gd_scene load_steps=8 format=3 uid="uid://cvghgxc50s4lc"]
+
+[ext_resource type="Script" uid="uid://d33wvtei8fbwc" path="res://Scripts/win_screen.gd" id="1_mf36t"]
+[ext_resource type="Texture2D" uid="uid://dmoxqotnllu6w" path="res://UI/optionMenu.png" id="2_pq638"]
+[ext_resource type="Theme" uid="uid://c58arneuyijtt" path="res://FontChary.tres" id="3_8snof"]
+[ext_resource type="FontFile" uid="uid://54ppgksbmiv4" path="res://UI/vcr-jp.ttf" id="4_1rjdi"]
+[ext_resource type="Texture2D" uid="uid://cfqki6ho468b0" path="res://UI/Button.png" id="5_6ufe8"]
+[ext_resource type="Script" uid="uid://djx5deis4blr8" path="res://Scripts/link_to_scene.gd" id="6_5xl6h"]
+
+[sub_resource type="Theme" id="Theme_qrg8t"]
+
+[node name="WinScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mf36t")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="MainMenu" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EdgeTexture" type="MarginContainer" parent="MainMenu"]
+custom_minimum_size = Vector2(5200, 1600)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -752.0
+offset_top = -532.0
+offset_right = 738.0
+offset_bottom = 471.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="MainMenu/EdgeTexture"]
+layout_mode = 2
+texture = ExtResource("2_pq638")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MainMenu"]
+custom_minimum_size = Vector2(400, 180)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -360.0
+offset_top = -300.0
+offset_right = 360.0
+offset_bottom = 352.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="GameTitle" type="Label" parent="MainMenu/VBoxContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("3_8snof")
+theme_override_colors/font_color = Color(0.321569, 0.772549, 0.219608, 1)
+theme_override_colors/font_shadow_color = Color(0.14902, 0.101961, 0.388235, 1)
+theme_override_constants/shadow_offset_x = 23
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_1rjdi")
+theme_override_font_sizes/font_size = 60
+text = "CONGRATS"
+horizontal_alignment = 1
+
+[node name="GameTitle2" type="Label" parent="MainMenu/VBoxContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("3_8snof")
+theme_override_colors/font_color = Color(0.321569, 0.772549, 0.219608, 1)
+theme_override_colors/font_shadow_color = Color(0.14902, 0.101961, 0.388235, 1)
+theme_override_constants/shadow_offset_x = 23
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_1rjdi")
+theme_override_font_sizes/font_size = 60
+text = "THANK YOU FOR PLAYING"
+horizontal_alignment = 1
+
+[node name="PlayButton" type="MarginContainer" parent="MainMenu/VBoxContainer"]
+custom_minimum_size = Vector2(400, 180)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+
+[node name="TextureRect" type="TextureRect" parent="MainMenu/VBoxContainer/PlayButton"]
+layout_mode = 2
+texture = ExtResource("5_6ufe8")
+
+[node name="Label" type="Label" parent="MainMenu/VBoxContainer/PlayButton/TextureRect"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("4_1rjdi")
+theme_override_font_sizes/font_size = 36
+text = "MAIN MENU"
+
+[node name="PlayButtonLink" type="LinkButton" parent="MainMenu/VBoxContainer/PlayButton"]
+layout_mode = 2
+theme = SubResource("Theme_qrg8t")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_focus_color = Color(0.583765, 0.0962636, 0.721461, 1)
+underline = 1
+script = ExtResource("6_5xl6h")
+scene_to_load = "uid://dwis7o5rfphwc"
+
+[node name="Quit" type="MarginContainer" parent="MainMenu/VBoxContainer"]
+custom_minimum_size = Vector2(400, 180)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+
+[node name="TextureRect" type="TextureRect" parent="MainMenu/VBoxContainer/Quit"]
+layout_mode = 2
+texture = ExtResource("5_6ufe8")
+
+[node name="Label" type="Label" parent="MainMenu/VBoxContainer/Quit/TextureRect"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("4_1rjdi")
+theme_override_font_sizes/font_size = 36
+text = "QUIT"
+
+[node name="PlayButtonLink" type="LinkButton" parent="MainMenu/VBoxContainer/Quit"]
+layout_mode = 2
+theme = SubResource("Theme_qrg8t")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_focus_color = Color(0.583765, 0.0962636, 0.721461, 1)
+underline = 1

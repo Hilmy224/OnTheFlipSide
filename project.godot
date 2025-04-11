@@ -11,13 +11,14 @@ config_version=5
 [application]
 
 config/name="OnTheFlipSide"
-run/main_scene="res://Scenes/World.tscn"
-config/features=PackedStringArray("4.3", "Forward Plus")
+run/main_scene="uid://dwis7o5rfphwc"
+config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Global="*res://Scripts/global.gd"
+SceneManage="*res://Scripts/SceneManage.gd"
 
 [display]
 

@@ -2,14 +2,11 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cyxad4hpodx87"
+uid="uid://baslji8eg8266"
 path.s3tc="res://.godot/imported/fence_stairs_50_0.png-c498246424512cc06643bc4929afbf47.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
-}
-generator_parameters={
-"md5": "bf0cf8f2937250e175c8873061996f75"
 }
 
 [deps]

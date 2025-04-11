@@ -1,18 +1,87 @@
-[gd_scene load_steps=4 format=3 uid="uid://cjlp3w2nos0iy"]
+[gd_scene load_steps=12 format=3 uid="uid://cjlp3w2nos0iy"]
 
-[ext_resource type="Script" path="res://Scripts/bullet_script.gd" id="1_006xk"]
+[ext_resource type="Script" uid="uid://dlon8d488jrbw" path="res://Scripts/bullet_script.gd" id="1_006xk"]
 [ext_resource type="Material" uid="uid://uv3b7567hhax" path="res://Materials/bullet_material.tres" id="2_401ci"]
+[ext_resource type="Shader" uid="uid://bveiy6g60jien" path="res://BloodSplatter/blood.tres" id="3_xx2tc"]
+[ext_resource type="Material" uid="uid://b3qubdr5u3l5j" path="res://testParticle.tres" id="4_okl0e"]
 
-[sub_resource type="BoxMesh" id="BoxMesh_75p4k"]
+[sub_resource type="CylinderMesh" id="CylinderMesh_xx2tc"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_prs26"]
+render_priority = 0
+shader = ExtResource("3_xx2tc")
+shader_parameter/ColorParameter = Color(1, 0, 0.071664, 1)
+
+[sub_resource type="Curve" id="Curve_yt6k8"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_xx2tc"]
+curve = SubResource("Curve_yt6k8")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_pwq8n"]
+spread = 2.0
+initial_velocity_min = 4.0
+initial_velocity_max = 6.0
+linear_accel_min = 4.0
+linear_accel_max = 4.0
+scale_max = 2.4
+scale_curve = SubResource("CurveTexture_xx2tc")
+collision_mode = 2
+sub_emitter_mode = 3
+sub_emitter_amount_at_collision = 1
+
+[sub_resource type="QuadMesh" id="QuadMesh_q885a"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_xx2tc"]
+material = ExtResource("2_401ci")
 
 [node name="BulletEntity" type="Node3D"]
-transform = Transform3D(127.773, 0, 0, 0, 127.773, 0, 0, 0, 127.773, 0, 0, 0)
+transform = Transform3D(2128.28, 0, 0, 0, 2128.28, 0, 0, 0, 2128.28, 0, 0, 0)
 script = ExtResource("1_006xk")
 
 [node name="MeshInstance" type="MeshInstance3D" parent="."]
-transform = Transform3D(-3.97778e-08, 0, 0.0693635, 0, 0.0774946, 0, -0.91001, 0, -3.03197e-09, 0, 0, 0)
+transform = Transform3D(2.84696e-16, 4.71198e-08, 0.167142, 0.149002, -4.71198e-08, 0, 6.51308e-09, 1.07798, -7.30603e-09, -0.00109355, -7.16952e-09, -0.79632)
 material_override = ExtResource("2_401ci")
-mesh = SubResource("BoxMesh_75p4k")
+mesh = SubResource("CylinderMesh_xx2tc")
 
 [node name="RayCast3D" type="RayCast3D" parent="."]
+transform = Transform3D(1.0005, 0, 0, 0, 1.01853, 0, 0, 0, 3.83287, 0, 0, 0.150776)
 target_position = Vector3(0, 0, -0.6)
+collision_mask = 2
+collide_with_areas = true
+debug_shape_custom_color = Color(0.73, 0, 0.0365001, 1)
+
+[node name="blood" type="GPUParticles3D" parent="."]
+transform = Transform3D(6.1374e-12, 0, -0.00688084, 0, 0.00666327, 0, 0.000514672, 0, 8.20532e-11, 8.32819e-05, 0.000836171, -1.94273)
+material_override = SubResource("ShaderMaterial_prs26")
+emitting = false
+amount = 50
+amount_ratio = 0.2375
+lifetime = 0.3
+one_shot = true
+explosiveness = 0.95
+use_fixed_seed = true
+seed = 1223488269
+process_material = SubResource("ParticleProcessMaterial_pwq8n")
+draw_pass_1 = SubResource("QuadMesh_q885a")
+
+[node name="GPUParticlesCollisionBox3D" type="GPUParticlesCollisionBox3D" parent="."]
+transform = Transform3D(0.00136668, 0, 0, 0, 0.00264245, 0, 0, 0, 0.00264245, -0.0261969, -0.00479848, 0.018451)
+visible = false
+size = Vector3(174.065, 52.665, 22.3965)
+
+[node name="Timer" type="Timer" parent="."]
+wait_time = 10.0
+one_shot = true
+autostart = true
+
+[node name="GPUParticles3D" type="GPUParticles3D" parent="."]
+transform = Transform3D(0.168702, 0, 1.44185e-16, 0, 0.168702, 0, -2.8837e-16, 0, 0.168702, 7.00149e-12, -5.60119e-11, -1.94038)
+visible = false
+material_override = ExtResource("2_401ci")
+amount = 100
+process_material = ExtResource("4_okl0e")
+draw_pass_1 = SubResource("BoxMesh_xx2tc")
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
